@@ -4,25 +4,26 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <link rel="stylesheet" href="stylesheets/global.css">
+    <title>fileBrowse</title>
 </head>
 
 <body>
     <div id="app">
         <div id="options" style="border-bottom:1px solid black;margin-bottom:5px;padding-bottom:5px;">
-            <input type="button" v-on:click="forwardFolder" value="向上">
-            <input type="button" v-on:click="download" value="下载">
-            <input type="button" v-on:click="upload" value="上传">
-            当前目录：{{dir}}
+            <input type="button" v-on:click="forwardFolder" value="forward">
+            <input type="button" v-on:click="download" value="download">
+            <input type="button" v-on:click="upload" value="upload">
+            CurrentPath：{{dir}}
         </div>
         <div id="data">
             <table style="width:100%">
                 <thead>
                     <tr>
-                        <td><input type="button" v-on:click="toggleAll()" value="全选"></td>
-                        <td v-on:click="orderBy('name')">文件名</td>
-                        <td v-on:click="orderBy('size')">大小</td>
-                        <td v-on:click="orderBy('birthtime')">创建日期</td>
-                        <td v-on:click="orderBy('ctime')">修改日期</td>
+                        <td style="width:40px"><input type="button" v-on:click="toggleAll()" value="[x]"></td>
+                        <td v-on:click="orderBy('name')">Name</td>
+                        <td v-on:click="orderBy('size')">Size</td>
+                        <td v-on:click="orderBy('birthtime')">CreateTime</td>
+                        <td v-on:click="orderBy('ctime')">ModifyTime</td>
                     </tr>
                 </thead>
                 <tbody path="{{dir}}">

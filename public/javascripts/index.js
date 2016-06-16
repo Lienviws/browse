@@ -56,7 +56,10 @@ var vm = new Vue({
             var rootDir = this.$data.dir;
             var regExpArray = rootDir.match(/(.*)\\.*/);
             if(regExpArray != null){
-                dir = regExpArray[1] + "\\";
+                dir = regExpArray[1];
+                if (dir.split("\\").length <= 1){
+                    dir = dir + "\\";
+                }
             }else{
                 alert("已到顶层目录！");
                 return false;
@@ -79,7 +82,7 @@ var vm = new Vue({
             },function(result) {
                 var self = this;
                 if(result.code != "s_ok"){
-                    alert(result.summary);
+                    alert(result.summary.code);
                     return;
                 }
                 self.$data.dir = result.path;
@@ -89,6 +92,42 @@ var vm = new Vue({
                     self.$data.files.push(file);
                 })
             });
+        },
+        download:function(){
+            var downloadFileArray = [];
+            this.$data.files.forEach(function(file,index) {
+                if(file.check){
+                    downloadFileArray.push({name:file.name,type:file.type});
+                }
+            });
+            if(!downloadFileArray.length){
+                return false;
+            }
+            var rootDir = this.$data.dir;
+            this.$http.post("/download",{
+                dir:rootDir,
+                fileArray: downloadFileArray
+            },function(result){
+                if(result.code == "s_ok"){
+                    downloadByIframe(result.url);
+                }else{
+                    alert(result.summary);
+                }
+            });
         }
     }
 });
+
+function downloadByIframe(url){
+    var iframe = document.getElementById("myIframe");
+    if(iframe){
+        iframe.src = url;
+    }else{
+        iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = url;
+        iframe.id = "myIframe";
+        document.body.appendChild(iframe);
+    }
+    
+}

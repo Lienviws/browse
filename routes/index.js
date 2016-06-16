@@ -2,16 +2,91 @@ var express = require('express');
 var path = require('path');
 var _ = require('lodash');
 var fs = require('fs');
+var archiver = require('archiver');
 
 var fs_ext = require('../utils/fs_ext')();
 var core = require('../utils/core');
 var router = express.Router();
 
 var rootDir = path.resolve(__dirname,"../..");
+var zipDir = path.join(path.resolve(__dirname,"../"), "zip");
+var rarName = "moreFiles.zip";
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
     res.render('index');
+});
+
+router.get('/downloadSingle',function(req, res, next){
+    var currDir = path.normalize(req.query.dir);
+    var comefrom = req.query.comefrom;
+    var fileName = req.query.name;
+    var currFile = path.join(currDir,fileName);
+    fs.exists(currFile,function(exist) {
+        if(exist){
+            res.set({
+                "Content-type":"application/octet-stream",
+                "Content-Disposition":"attachment;filename="+encodeURI(fileName)
+            });
+            fReadStream = fs.createReadStream(currFile);
+            fReadStream.on("data",(chunk) => res.write(chunk,"binary"));
+            fReadStream.on("end",function () {
+                res.end();
+                //删除生成的压缩文件
+                if(comefrom == "archive"){
+                    setTimeout(() => fs.unlink(path.join(zipDir,rarName)), 100);
+                }
+            });
+        }
+    });
+});
+
+router.post('/download',function(req, res){
+    var currDir = path.normalize(req.body.dir);
+    var fileArray = req.body.fileArray;
+    var files = [];     //文件个数
+    var folders = [];   //文件夹个数
+    
+    fileArray.forEach(function(file) {
+        if(file.type == 1){
+            files.push(file.name);
+        }else{
+            folders.push(path.join(file.name,"**"));
+        }
+    });
+
+    if(folders.length == 0 && files.length == 1){
+        //只有一个文件的时候直接走get
+        var downloadUrl = "/downloadSingle?dir="+encodeURIComponent(currDir)+"&name="+encodeURIComponent(files[0]);
+        res.send({"code":"s_ok", "url":downloadUrl});
+    }else{
+        //多个文件就压缩后再走get
+        var output = fs.createWriteStream(path.join("zip",rarName));
+        var archive = archiver.create('zip', {});
+        archive.pipe(output);   //和写入流相接
+        //打包文件夹
+        archive.bulk([ 
+            {
+                cwd:currDir,    //设置相对路径
+                src: folders,
+                expand: currDir
+            }
+        ]);
+        //打包文件
+        files.forEach((fileName) => archive.append(fs.createReadStream(path.join(currDir,fileName)),{"name":fileName}));
+
+        archive.on('error', function(err){
+            res.send({"code":"failed", "summary":err});
+            throw err;
+        });
+        archive.on('end', function(a){
+            var downloadUrl = "/downloadSingle?dir="+encodeURIComponent(zipDir)+"&name="+encodeURIComponent(rarName)+"&comefrom=archive";
+            res.send({"code":"s_ok", "url":downloadUrl});
+        });
+        archive.finalize();
+    }
+
+    
 });
 
 router.post('/loadFile',function(req, res) {
@@ -127,7 +202,6 @@ router.post('/loadFile',function(req, res) {
           })
           .done();
 });
-
 
 
 module.exports = router;
