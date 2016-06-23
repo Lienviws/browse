@@ -13,6 +13,7 @@
     "express": "~4.13.1",
     "jade": "~1.11.0",
     "morgan": "~1.6.1",
+    "multer": "^1.1.0",
     "serve-favicon": "~2.3.0",
     "vue-resource": "^0.7.4"
   }

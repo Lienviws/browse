@@ -3,6 +3,7 @@ var path = require('path');
 var _ = require('lodash');
 var fs = require('fs');
 var archiver = require('archiver');
+var multer = require('multer');
 
 var fs_ext = require('../utils/fs_ext')();
 var core = require('../utils/core');
@@ -10,6 +11,7 @@ var router = express.Router();
 
 var rootDir = path.resolve(__dirname,"../..");
 var zipDir = path.join(path.resolve(__dirname,"../"), "zip");
+var uploadDir = path.join(path.resolve(__dirname,"../"), "uploads");
 var rarName = "moreFiles.zip";
 
 /* GET home page. */
@@ -17,6 +19,7 @@ router.get('/', function(req, res, next) {
     res.render('index');
 });
 
+//下载单个文件
 router.get('/downloadSingle',function(req, res, next){
     var currDir = path.normalize(req.query.dir);
     var comefrom = req.query.comefrom;
@@ -41,6 +44,40 @@ router.get('/downloadSingle',function(req, res, next){
     });
 });
 
+//上传文件
+var upload = multer({ dest: './uploads/'});
+var cpUpload = upload.fields([
+    {name: 'file'},
+    {name: 'src'}
+]);
+router.post("/uploadFile",cpUpload, function(req, res, next){
+    var files = req.files.file;
+    var dir = req.body.dir;
+    var fsPromise = function(file){
+        return new Promise(function(resolved,rejected){
+            fs.rename(path.join(uploadDir,file.filename),path.join(dir,file.originalname),function(err){
+                if(err){
+                    rejected(err);
+                }else{
+                    resolved();
+                }
+            });
+        });
+    }
+    Promise.all(files.map(fsPromise))
+    .then(function(){
+        res.set({
+            'Content-Type':'text/html'
+        });
+        res.send({"code":"s_ok"});
+        res.end();
+    })
+    .catch(function(err) {
+        res.send({"code":"failed", "summary":err});
+    });
+});
+
+//获取下载文件的地址
 router.post('/download',function(req, res){
     var currDir = path.normalize(req.body.dir);
     var fileArray = req.body.fileArray;
@@ -89,6 +126,7 @@ router.post('/download',function(req, res){
     
 });
 
+//读取目录文件
 router.post('/loadFile',function(req, res) {
     var currDir = "";
     var order = "";

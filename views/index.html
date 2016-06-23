@@ -13,6 +13,11 @@
             <input type="button" v-on:click="forwardFolder" value="forward">
             <input type="button" v-on:click="download" value="download">
             <input type="button" v-on:click="upload" value="upload">
+            <form target="iframe" action="/uploadFile" style="display:none;" method="post" id="form1" enctype="multipart/form-data">
+                <input id="fileUp" name="file" type="file" multiple="true">
+                <input name="dir" type="text" value="{{dir}}">
+            </form>
+            
             CurrentPath：{{dir}}
         </div>
         <div id="data">
