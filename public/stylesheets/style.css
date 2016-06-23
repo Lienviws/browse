@@ -1,8 +1,18 @@
 body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+	padding: 10px;
+	font: 16px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
-a {
-  color: #00B7FF;
+a { 
+	color: #1A75DD;
+	text-decoration: none;
+}
+
+.folder:hover{
+	text-decoration: underline;
+}
+
+.file{
+    color: black;
+    cursor: default;
 }

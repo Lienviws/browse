@@ -3,7 +3,7 @@
 
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <link rel="stylesheet" href="stylesheets/global.css">
+    <link rel="stylesheet" href="stylesheets/style.css">
     <title>fileBrowse</title>
 </head>
 
@@ -35,9 +35,9 @@
                     <tr index="{{$index}}" v-for="file in files">
                         <td><input v-model="file.check" type="checkbox"></td>
                         <td v-on:click="enterFolder">
-                            <img v-if="file.isDirectory" src="images/normal_folder.png" width="16" height="16">
+                            <a href="javascript:void(0)" v-if="file.isDirectory"><img class="folder" src="images/normal_folder.png" width="16" height="16"></a>
                             <img v-if="file.isFile" src="images/normal.png" width="16" height="16">
-                            <a>{{file.name}}</a>
+                            <a v-bind:class="{'folder':file.isDirectory,'file':file.isFile}" href="javascript:void(0)"><span>{{file.name}}</span></a>
                         </td>
                         <td>{{file.size}}</td>
                         <td>{{file.birthtime}}</td>

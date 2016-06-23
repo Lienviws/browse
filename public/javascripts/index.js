@@ -93,7 +93,11 @@ var vm = new Vue({
          * 打开文件夹
          */
         enterFolder: function (event) {
-            var folderName = event.target.parentNode.getElementsByTagName("a")[0].innerText;
+            var tdContent = findParentUntil(event.target,"td");
+            if(!tdContent){
+                return false;
+            }
+            var folderName = tdContent.getElementsByTagName("span")[0].innerText;
             var rootDir = this.$data.dir;
             var targetDir = rootDir + "\\" + folderName;
             this.getFolder(targetDir);
@@ -156,15 +160,16 @@ var vm = new Vue({
             this.$http.post("/loadFile",{
                 dir:dir,
                 order: order
-            },function(result) {
+            }).then(function(result) {
+                var data = result.data;
                 var self = this;
-                if(result.code != "s_ok"){
-                    alert(result.summary.code);
+                if(data.code != "s_ok"){
+                    alert(data.summary.code);
                     return;
                 }
-                self.$data.dir = result.path;
+                self.$data.dir = data.path;
                 self.$data.files = [];
-                result["var"].map(function(file){
+                data["var"].map(function(file){
                     file.check = false;
                     self.$data.files.push(file);
                 })
@@ -187,11 +192,12 @@ var vm = new Vue({
             this.$http.post("/download",{
                 dir:rootDir,
                 fileArray: downloadFileArray
-            },function(result){
-                if(result.code == "s_ok"){
-                    downloadByIframe(result.url);
+            }).then(function(result){
+                var data = result.data;
+                if(data.code == "s_ok"){
+                    downloadByIframe(data.url);
                 }else{
-                    alert(result.summary);
+                    alert(data.summary);
                 }
             });
         },
@@ -207,6 +213,25 @@ var vm = new Vue({
     }
 });
 
+function findParentUntil(target,nodeName){
+    if(!target || !target.nodeType){
+        return false;
+    }
+    var nodeName = nodeName.toLowerCase();
+    var rootNodeName = "#document";
+    var tmpNode = target;
+    while(true){
+        if(tmpNode.nodeName.toLowerCase() == rootNodeName){
+            return false;
+        }
+        tmpNode = tmpNode.parentNode;
+        if(tmpNode.nodeName.toLowerCase() == nodeName){
+            break;
+        }
+    }
+    return tmpNode;
+}
+
 function downloadByIframe(url){
     var iframe = document.getElementById("myIframe");
     if(iframe){
@@ -218,7 +243,6 @@ function downloadByIframe(url){
         iframe.id = "myIframe";
         document.body.appendChild(iframe);
     }
-    
 }
 
 var xhrId = 0;
