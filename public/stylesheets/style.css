@@ -1,0 +1,18 @@
+body {
+	padding: 10px;
+	font: 16px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a { 
+	color: #1A75DD;
+	text-decoration: none;
+}
+
+.folder:hover{
+	text-decoration: underline;
+}
+
+.file{
+    color: black;
+    cursor: default;
+}
