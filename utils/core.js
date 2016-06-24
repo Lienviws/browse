@@ -2,8 +2,9 @@
  * core.js
  * 公共函数
  *********************/
-var fs = require("fs");
-var _ = require("lodash");
+var fs = require("fs"),
+	_ = require("lodash"),
+	os = require("os");
 
 module.exports = {
     
@@ -73,7 +74,23 @@ module.exports = {
         });
         return text;
     },
-    
+    /**
+     * 得到服务器信息
+     */
+    getServerInfo: function() {
+        var ipv4,mac;
+        for(var i = 0;i < os.networkInterfaces().en0.length; i++){
+            if(os.networkInterfaces().en0[i].family == "IPv4"){
+                ipv4 = os.networkInterfaces().en0[i].address;
+                mac = os.networkInterfaces().en0[i].mac;
+            }
+        }
+        return{
+            host: os.hostname(),
+            ipv4: ipv4,
+            mac: mac
+        }
+    },
     /**
      * 获取服务器时间
      */
@@ -104,5 +121,27 @@ module.exports = {
         }else{
             return _.assign(data,info);
         }
+    },
+    /**
+     * 检查文件夹是否存在
+     * @params folderDir 文件夹路径
+     * @params ifCreate 如果不存在是否自动创建
+     */
+    folderExist: function(folderDir, ifCreate) {
+        fs.stat(folderDir,function(err,stats) {
+            if(!err){
+                return true;
+            }
+            if(err.errno == -2){    //文件不存在
+                if(ifCreate){
+                    fs.mkdir(folderDir);
+                    return true;
+                }else{
+                    return false;
+                }
+            }else{
+                return false;
+            }
+        });
     }
 };

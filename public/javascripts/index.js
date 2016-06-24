@@ -10,7 +10,8 @@ var vm = new Vue({
         imgSrc:{
             folder:"images/normal_folder.png",
             file:"images/normal.png",
-        }
+        },
+        sIP:""  //服务器ip
     },
     methods:{
         initEvents: function(params) {
@@ -99,15 +100,14 @@ var vm = new Vue({
             }
             var folderName = tdContent.getElementsByTagName("span")[0].innerText;
             var rootDir = this.$data.dir;
-            var targetDir = rootDir + "\\" + folderName;
-            this.getFolder(targetDir);
+            this.getFolder(rootDir,folderName);
         },
         /**
          * 按照关键字排序
          */
         orderBy: function(order){
             var rootDir = this.$data.dir;
-            this.getFolder(rootDir, order);
+            this.getFolder(rootDir, "", order);
         },
         /**
          * 切换全选
@@ -133,41 +133,28 @@ var vm = new Vue({
          * 前一个文件夹
          */
         forwardFolder: function(){
+            var self = this;
             var dir = "";
             var rootDir = this.$data.dir;
-            var regExpArray = rootDir.match(/(.*)\\.*/);
-            if(regExpArray != null){
-                dir = regExpArray[1];
-                if (dir.split("\\").length <= 1){
-                    dir = dir + "\\";
-                }
-            }else{
-                alert("已到顶层目录！");
-                return false;
-            }
-            if(dir != rootDir){
-                this.getFolder(dir);
-            }else{
-                alert("已到顶层目录！");
-                return false;
-            }
-            
+            this.getFolder(rootDir,"..");
         },
         /**
          * 通过ajax得到文件夹数据
          */
-        getFolder: function(dir,order){
+        getFolder: function(dir,folderName,order){
             this.$http.post("/loadFile",{
                 dir:dir,
+                folderName:folderName,
                 order: order
             }).then(function(result) {
                 var data = result.data;
                 var self = this;
                 if(data.code != "s_ok"){
                     alert(data.summary.code);
-                    return;
+                    return false;
                 }
                 self.$data.dir = data.path;
+                self.$data.sIP = data.sysInfo.ipv4;
                 self.$data.files = [];
                 data["var"].map(function(file){
                     file.check = false;
@@ -208,12 +195,17 @@ var vm = new Vue({
         },
         refresh:function() {
             var rootDir = this.$data.dir;
-            this.getFolder(rootDir);
+            this.getFolder(rootDir,"");
         }
     }
 });
 
-function findParentUntil(target,nodeName){
+/**
+ * 遍历寻找父节点
+ * @params target 当前节点
+ * @params nodeName 父节点名称
+ */
+function findParentUntil(target, nodeName){
     if(!target || !target.nodeType){
         return false;
     }
@@ -232,6 +224,10 @@ function findParentUntil(target,nodeName){
     return tmpNode;
 }
 
+/**
+ * 用iframe下载
+ * @params url 下载地址
+ */
 function downloadByIframe(url){
     var iframe = document.getElementById("myIframe");
     if(iframe){
@@ -245,9 +241,14 @@ function downloadByIframe(url){
     }
 }
 
+
 var xhrId = 0;
 var xhrCallbacks = {};
 var xhrCallbackCount = 0;
+/**
+ * XMLHttpRequest的封装
+ * @params options 参考jquery.ajax
+ */
 function xhrSend(options){
     var callback;
     return (function(){
