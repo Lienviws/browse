@@ -9,6 +9,7 @@ var fs_ext = require('../utils/fs_ext')();
 var core = require('../utils/core');
 var router = express.Router();
 
+var sysInfo = core.getServerInfo();
 var rootDir = path.resolve(__dirname,"../..");
 var zipDir = path.join(path.resolve(__dirname,"../"), "zip");
 var uploadDir = path.join(path.resolve(__dirname,"../"), "uploads");
@@ -17,6 +18,9 @@ var zipName = "moreFiles.zip";
 /* GET home page. */
 router.get('/', function(req, res, next) {
     res.render('index');
+    core.folderExist(zipDir, true);
+    core.folderExist(uploadDir, true);
+    core.getServerInfo();
 });
 
 //下载单个文件
@@ -130,7 +134,7 @@ router.post("/uploadFile",cpUpload, function(req, res, next){
             'Content-Type':'text/html'
         });
         res.send({"code":"s_ok"});
-        res.end();
+        // res.end();
     })
     .catch(function(err) {
         res.send({"code":"failed", "summary":err});
@@ -145,8 +149,9 @@ router.post('/loadFile',function(req, res) {
     if(!req.body.dir){
         currDir = rootDir;
     }else{
-        currDir = path.normalize(req.body.dir);
+        currDir = path.join(req.body.dir,req.body.folderName);
     }
+
     if(!req.body.order){
         order = "name";
     }else{
@@ -192,7 +197,7 @@ router.post('/loadFile',function(req, res) {
                      .then(function() {
                          //TODO:sort 按文件夹在上的顺序
                          fileDetailArray.sort(sortOrder);
-                         var result = {"code":"s_ok", "path":currDir, "var":fileDetailArray};
+                         var result = {"code":"s_ok", "path":currDir, "var":fileDetailArray, sysInfo:sysInfo};
                          res.send(result);
 
                          //排序
