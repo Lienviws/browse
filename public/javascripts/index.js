@@ -154,7 +154,7 @@ var vm = new Vue({
                     return false;
                 }
                 self.$data.dir = data.path;
-                self.$data.sIP = data.sysInfo.ipv4;
+                self.$data.sIP = data.sysInfo.ipv4[0];
                 self.$data.files = [];
                 data["var"].map(function(file){
                     file.check = false;

@@ -78,13 +78,20 @@ module.exports = {
      * 得到服务器信息
      */
     getServerInfo: function() {
-        var ipv4,mac;
-        for(var i = 0;i < os.networkInterfaces().en0.length; i++){
-            if(os.networkInterfaces().en0[i].family == "IPv4"){
-                ipv4 = os.networkInterfaces().en0[i].address;
-                mac = os.networkInterfaces().en0[i].mac;
+        var ipv4 = [],mac = [];
+        var networkInterfaces = os.networkInterfaces();
+        for (var key in networkInterfaces) {
+            if (networkInterfaces.hasOwnProperty(key)) {
+                var interfaces = networkInterfaces[key];
+                for(var i = 0;i < interfaces.length; i++){
+                    if(interfaces[i].family == "IPv4" && !interfaces[i].internal){
+                        ipv4.push(interfaces[i].address);
+                        mac.push(interfaces[i].mac);
+                    }
+                }
             }
         }
+        
         return{
             host: os.hostname(),
             ipv4: ipv4,
