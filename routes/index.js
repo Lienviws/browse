@@ -107,10 +107,11 @@ router.post('/download',function(req, res){
     }
 });
 
+var count = 0;
 //上传文件
 var upload = multer({ dest: './uploads/'});
 var cpUpload = upload.fields([
-    {name: 'file'},
+    {name: 'file', maxCount:20},
     {name: 'src'}
 ]);
 router.post("/uploadFile",cpUpload, function(req, res, next){

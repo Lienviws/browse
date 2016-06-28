@@ -22,7 +22,7 @@ var vm = new Vue({
                 var rootDir = self.$data.dir;
                 if(files){
                     for (var key in files) {
-                        if (parseInt(key,10) >= 0) {
+                        if (parseInt(key,10) >= 0) {     //排除length等不需要的属性
                             var formData = new FormData();
                             formData.append("file",files[key]);
                             formData.append("dir",rootDir);
@@ -38,26 +38,6 @@ var vm = new Vue({
                                     self.refresh();
                                 }
                             });
-
-                            // 解决xhr唯一回调问题的demo
-                            // xhrTest();
-                            // function xhrTest(){
-                            //     var xhr = new XMLHttpRequest();
-                            //     var id = ++xhrId;
-                            //     xhr.open("POST","/uploadFile");
-                            //     xhr.send(formData);
-                            //     callback = function(){
-                            //         if(xhr.readyState == 4){
-                            //             xhr.onreadystatechange = function(){};
-                            //             if((xhr.status >= 200 && xhr.status < 300) || xhr.status == 304){
-                            //                 console.log("succ");
-                            //             }else{
-                            //                 console.log("error");
-                            //             }
-                            //         }
-                            //     }
-                            //     xhr.onreadystatechange = callback;
-                            // }
                         }
                     }
                 }else{
@@ -77,9 +57,15 @@ var vm = new Vue({
                         if(!result){
                             return;
                         }
-                        result = JSON.parse(result);
+                        try {
+                            result = JSON.parse(result);
+                        } catch (error) {
+                            alert("10 files is the max upload count!");
+                            return;
+                        }
                         if(result.code == "s_ok"){
                             console.log("succ");
+                            self.refresh();
                         }else{
                             alert("failed!-2");
                         }
