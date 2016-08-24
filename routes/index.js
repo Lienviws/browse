@@ -12,8 +12,10 @@ var router = express.Router();
 var sysInfo = core.getServerInfo();
 var rootDir = path.resolve(__dirname,"../..");
 var zipDir = path.join(path.resolve(__dirname,"../"), "zip");
+var CurrDir = rootDir;
 var uploadDir = path.join(path.resolve(__dirname,"../"), "uploads");
 var zipName = "moreFiles.zip";
+var supportOpen = ".html/.htm";
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -52,6 +54,23 @@ router.get('/downloadSingle',function(req, res, next){
             res.end();
         }
     });
+});
+
+router.get("*", function(req, res, next) {
+    var fileDir = path.join(CurrDir,req.url);
+    //除去拓展名后面的参数
+    var extname = path.extname(fileDir);
+    var trueExtname = extname.match(/\.\w+/);
+    trueExtname = trueExtname? trueExtname[0]: extname;
+    fileDir = fileDir.replace(extname,trueExtname);
+    
+    var fileInfo;
+    try {
+        fileInfo = fs.statSync(fileDir);
+    } catch (error) {
+        // debugger;
+    }
+    res.sendFile(fileDir);
 });
 
 //获取下载文件的地址
@@ -153,12 +172,28 @@ router.post('/loadFile',function(req, res) {
         currDir = path.join(req.body.dir,req.body.folderName);
     }
 
+    //排序
     if(!req.body.order){
         order = "name";
     }else{
         order = req.body.order;
     }
+
     res.set("Content-type","text/json");
+
+    //是否打开html文件
+    var fileInfo = fs.statSync(currDir);
+    if(fileInfo && fileInfo.size != 0){ //文件
+        var extName = path.extname(currDir).toLocaleLowerCase();
+        //是否支持拓展名打开
+        if(supportOpen.indexOf(extName) != -1){
+            var result = {"code":"s_ok", "var":{fileName:path.basename(currDir)}, type:"html"};
+            res.send(result);
+            return;
+        }
+    }
+
+    //读取当前文件夹的内容
     fs_ext.readdir(currDir)
           .then(function(files){
               return _.clone(files);
@@ -166,6 +201,7 @@ router.post('/loadFile',function(req, res) {
           .then(function(fileArray){
               var fileDetailArray = [];
 
+              //获取指定文件信息
               function getFileInfo(fileName){
                   return new Promise(function(resolve,rejected){
                       fs.lstat(path.join(currDir,fileName),function(err,stats){
@@ -194,12 +230,14 @@ router.post('/loadFile',function(req, res) {
                   });
               }
 
+              //获取当前目录所有文件的信息
               Promise.all(fileArray.map(getFileInfo))
                      .then(function() {
                          //TODO:sort 按文件夹在上的顺序
                          fileDetailArray.sort(sortOrder);
                          var result = {"code":"s_ok", "path":currDir, "var":fileDetailArray, sysInfo:sysInfo};
                          res.send(result);
+                         CurrDir = currDir;
 
                          //排序
                          function sortOrder(a,b) {
@@ -258,6 +296,5 @@ router.post('/loadFile',function(req, res) {
           })
           .done();
 });
-
 
 module.exports = router;

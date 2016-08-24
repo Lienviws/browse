@@ -16,3 +16,7 @@ a {
     color: black;
     cursor: default;
 }
+
+.previewIframe{
+	width: 100%;
+}

@@ -139,6 +139,10 @@ var vm = new Vue({
                     alert(data.summary.code);
                     return false;
                 }
+                if(data.type == "html"){
+                    window.open(data["var"].fileName);
+                    return;
+                }
                 self.$data.dir = data.path;
                 self.$data.sIP = data.sysInfo.ipv4[0];
                 self.$data.files = [];

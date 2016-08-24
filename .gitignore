@@ -38,3 +38,6 @@ jspm_packages
 
 typings
 uploads
+
+*.db-wal
+.vscode/.browse.VC.db
