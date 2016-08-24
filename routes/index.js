@@ -183,10 +183,10 @@ router.post('/loadFile',function(req, res) {
 
     //是否打开html文件
     var fileInfo = fs.statSync(currDir);
-    if(fileInfo && fileInfo.size != 0){ //文件
+    if(fileInfo && fileInfo.isFile()){ //文件
         var extName = path.extname(currDir).toLocaleLowerCase();
         //是否支持拓展名打开
-        if(supportOpen.indexOf(extName) != -1){
+        if(extName && supportOpen.indexOf(extName) != -1){
             var result = {"code":"s_ok", "var":{fileName:path.basename(currDir)}, type:"html"};
             res.send(result);
             return;
