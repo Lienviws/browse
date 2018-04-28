@@ -7,6 +7,9 @@
 var app = require('../app');
 var debug = require('debug')('browse:server');
 var http = require('http');
+var core = require('../utils/core');
+
+var sysInfo = core.getServerInfo();
 
 /**
  * Get port from environment and store in Express.
@@ -14,6 +17,10 @@ var http = require('http');
 
 var port = normalizePort(process.env.PORT || '2333');
 app.set('port', port);
+
+sysInfo.ipv4.forEach(function(ip) {
+  console.log("server ip: " + ip + ":" + app.get('port'));
+}, this);
 
 /**
  * Create HTTP server.
