@@ -82,17 +82,21 @@ router.post('/download',function(req, res){
         res.send({"code":"s_ok", "url":downloadUrl});
     }else{
         //多个文件就压缩后再走get
-        var output = fs.createWriteStream(path.join("zip",zipName));
-        var archive = archiver.create('zip', {});
+        let exists = fs.existsSync(zipDir)
+        if (!exists) {
+            fs.mkdirSync(zipDir)
+        }
+
+        var output = fs.createWriteStream(path.join(zipDir, zipName));
+
+        var archive = archiver.create('zip', {zlib: { level: 9 }});
         archive.pipe(output);   //和输出流相接
-        //打包文件
-        archive.bulk([ 
-            {
-                cwd:currDir,    //设置相对路径
-                src: fileNameArray,
-                expand: currDir
-            }
-        ]);
+        //压入文件
+        fileNameArray
+            .map(fileName => path.join(currDir, fileName))
+            .forEach(filePath => {
+                archive.file(filePath, { name: path.basename(filePath)})
+            })
 
         archive.on('error', function(err){
             res.send({"code":"failed", "summary":err});

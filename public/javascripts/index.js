@@ -1,17 +1,17 @@
-var vm = new Vue({
+new Vue({
     el: "#app",
-    ready:function(){
-        this.getFolder();
-        this.initEvents();
-    },
-    data:{
-        files:[],
-        dir:"",
-        imgSrc:{
-            folder:"images/normal_folder.png",
-            file:"images/normal.png",
-        },
-        sIP:""  //服务器ip
+    data () {
+        return {
+            files:[],
+            dir:"",
+            imgSrc:{
+                folder:"images/normal_folder.png",
+                file:"images/normal.png",
+            },
+            modelVisible: false,
+            modelInput: "test",
+            sIP:""  //服务器ip
+        }
     },
     methods:{
         initEvents: function(params) {
@@ -142,12 +142,20 @@ var vm = new Vue({
          * 通过ajax得到文件夹数据
          */
         getFolder: function(dir,folderName,order){
-            this.$http.post("/loadFile",{
-                dir:dir,
-                folderName:folderName,
-                order: order
-            }).then(function(result) {
-                var data = result.data;
+            fetch('/loadFile', {
+                method: 'POST',
+                credentials: 'include',
+                headers: new Headers({
+                    'Content-Type': 'application/json' // 指定提交方式为表单提交
+                }),
+                body: JSON.stringify({
+                    dir,
+                    folderName,
+                    order
+                })
+            })
+            .then(res => res.json())
+            .then((data) => {
                 var self = this;
                 if(data.code != "s_ok"){
                     alert(data.summary.code);
@@ -160,7 +168,7 @@ var vm = new Vue({
                     file.check = false;
                     self.$data.files.push(file);
                 })
-            });
+            })
         },
         /**
          * 下载文件
@@ -176,28 +184,50 @@ var vm = new Vue({
                 return false;
             }
             var rootDir = this.$data.dir;
-            this.$http.post("/download",{
-                dir:rootDir,
-                fileArray: downloadFileArray
-            }).then(function(result){
-                var data = result.data;
+
+            fetch('/download', {
+                method: 'POST',
+                credentials: 'include',
+                headers: new Headers({
+                    'Content-Type': 'application/json' // 指定提交方式为表单提交
+                }),
+                body: JSON.stringify({
+                    dir: rootDir,
+                    fileArray: downloadFileArray
+                })
+            })
+            .then(res => res.json())
+            .then((data) => {
                 if(data.code == "s_ok"){
                     downloadByIframe(data.url);
                 }else{
                     alert(data.summary);
                 }
-            });
+            })
         },
         //上传文件的按钮
         upload:function() {
             var fileInput = document.getElementById("fileUp");
             fileInput.click();
         },
+        pushText: function () {
+            this.modelVisible = true
+        },
+        modelSend: function () {
+
+        },
+        modelCancel: function () {
+
+        },
         refresh:function() {
             var rootDir = this.$data.dir;
             this.getFolder(rootDir,"");
         }
-    }
+    },
+    mounted: function(){
+        this.getFolder();
+        this.initEvents();
+    },
 });
 
 /**
