@@ -10,7 +10,7 @@ module.exports = function(server){
         });
 
         client.on('message',function(msg){
-            console.log('message: ' + msg);
+            console.log('message: \n' + msg);
             io.emit('message res', 'send succ');
         });
     });
