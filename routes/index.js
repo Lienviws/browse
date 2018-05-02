@@ -4,6 +4,7 @@ var _ = require('lodash');
 var fs = require('fs');
 var archiver = require('archiver');
 var multer = require('multer');
+var WebSocketServer = require('websocket').server
 
 var fs_ext = require('../utils/fs_ext')();
 var core = require('../utils/core');

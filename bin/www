@@ -8,6 +8,7 @@ var app = require('../app');
 var debug = require('debug')('browse:server');
 var http = require('http');
 var core = require('../utils/core');
+var SocketEvent = require('../socketEvent')
 
 var sysInfo = core.getServerInfo();
 
@@ -27,6 +28,8 @@ sysInfo.ipv4.forEach(function(ip) {
  */
 
 var server = http.createServer(app);
+
+SocketEvent(server)  // socket
 
 /**
  * Listen on provided port, on all network interfaces.

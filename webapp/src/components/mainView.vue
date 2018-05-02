@@ -6,7 +6,7 @@
         <input type="button" @click="upload" value="upload">
         <input type="button" @click="pushText" value="pushText">
         <form target="iframe" action="/uploadFile" style="display:none;" method="post" id="form1" enctype="multipart/form-data">
-          <input id="fileUp" name="file" type="file" multiple="true">
+          <input ref="fileInput" name="file" type="file" multiple="true" @change="onFileChange">
           <input name="dir" type="text" :value="dir">
         </form>
         sIP: {{sIP}};
@@ -38,23 +38,26 @@
           </tbody>
         </table>
       </div>
-      <div v-show="modelVisible" class="model">
+      <Dialog :visible.sync="modelVisible" @confirm="sendMessage">
         <span class="title">set content</span>
-        <textarea rows="5" cols="55" v-model="modelInput"></textarea>
-        <div class="foot">
-          <input type="button" @click="modelSend" value="send">
-          <input type="button" @click="modelVisible=false" value="cancel">
-        </div>
-      </div>
-      <div v-show="modelVisible" class="mask"></div>
+        <textarea rows="5" cols="55" v-model="modelInput" @keydown="onTextareaKeydown"></textarea>
+        <span class="messageHit" v-show="hitVisible">{{hitText}}</span>
+      </Dialog>
   </div>
 </template>
 
 <script>
 import normal from '@/../static/images/normal.png'
 import normalFolder from '@/../static/images/normal_folder.png'
+import Dialog from './dialog'
+import io from 'socket.io-client'
+
+const socket = io(location.host)
 
 export default {
+  components: {
+    Dialog
+  },
   data () {
     return {
       xhrId: 0,
@@ -67,65 +70,76 @@ export default {
         file: normal
       },
       modelVisible: false,
-      modelInput: 'test',
+      hitVisible: false,
+      hitText: '',
+      modelInput: '',
       sIP: '' // 服务器ip
     }
   },
   methods: {
-    initEvents (params) {
-      let self = this
-      let fileInput = document.getElementById('fileUp')
-      fileInput.onchange = function () {
-        let files = this.files
-        let rootDir = self.$data.dir
-        if (files) {
-          for (const key in files) {
-            if (parseInt(key, 10) >= 0) {
-              let formData = new FormData()
-              formData.append('file', files[key])
-              formData.append('dir', rootDir)
-              this.xhrSend({
-                method: 'POST',
-                url: '/uploadFile',
-                data: formData,
-                success (result) {
-                  console.log('succ')
-                },
-                done () {
-                  self.refresh()
-                }
+    initWebsocket () {
+      socket.on('connect', () => {
+        console.log('conneted socket')
+      })
+      socket.on('disconnect', () => {
+        console.log('disconneted socket')
+      })
+      socket.on('message res', (res) => {
+        this.hitVisible = true
+        this.hitText = res
+      })
+    },
+    onFileChange (e) {
+      let files = e.target.files
+      let rootDir = this.dir
+      if (files) {
+        for (const key in files) {
+          if (parseInt(key, 10) >= 0) {
+            let formData = new FormData()
+            formData.append('file', files[key])
+            formData.append('dir', rootDir)
+            fetch('/uploadFile', {
+              method: 'POST',
+              credentials: 'include',
+              body: formData
+            }).then(res => res.json())
+              .then(data => {
+                console.log('succ')
+                this.refresh()
               })
-            }
           }
-        } else {
-          // ie
-          let form = document.getElementById('form1')
-          let iframe = document.getElementById('iframe')
-          if (!iframe) {
-            iframe = document.createElement('iframe')
-          }
-          form.action = '/uploadFile'
-          form.target = 'iframe'
-          iframe.name = 'iframe'
-          iframe.src = ''
-          iframe.style.display = 'none'
-          iframe.onload = function () {
-            let result = iframe.contentWindow.document.body.innerText
-            if (!result) {
-              return
-            }
-            result = JSON.parse(result)
-            if (result.code === 's_ok') {
-              console.log('succ')
-            } else {
-              alert('failed!-2')
-            }
-          }
-
-          document.getElementById('options').appendChild(iframe)
-          form.submit()
         }
+      } else {
+        // ie
+        let form = document.getElementById('form1')
+        let iframe = document.getElementById('iframe')
+        if (!iframe) {
+          iframe = document.createElement('iframe')
+        }
+        form.action = '/uploadFile'
+        form.target = 'iframe'
+        iframe.name = 'iframe'
+        iframe.src = ''
+        iframe.style.display = 'none'
+        iframe.onload = function () {
+          let result = iframe.contentWindow.document.body.innerText
+          if (!result) {
+            return
+          }
+          result = JSON.parse(result)
+          if (result.code === 's_ok') {
+            console.log('succ')
+          } else {
+            alert('failed!-2')
+          }
+        }
+
+        document.getElementById('options').appendChild(iframe)
+        form.submit()
       }
+    },
+    onTextareaKeydown () {
+      this.hitVisible = false
     },
     /**
      * 打开文件夹
@@ -173,6 +187,9 @@ export default {
       let rootDir = this.$data.dir
       this.getFolder(rootDir, '..')
     },
+    sendMessage () {
+      socket.emit('message', this.modelInput)
+    },
     /**
      * 通过ajax得到文件夹数据
      */
@@ -188,8 +205,7 @@ export default {
           folderName,
           order
         })
-      })
-        .then(res => res.json())
+      }).then(res => res.json())
         .then(data => {
           let self = this
           if (data.code !== 's_ok') {
@@ -230,8 +246,7 @@ export default {
           dir: rootDir,
           fileArray: downloadFileArray
         })
-      })
-        .then(res => res.json())
+      }).then(res => res.json())
         .then(data => {
           if (data.code === 's_ok') {
             this.downloadByIframe(data.url)
@@ -242,14 +257,11 @@ export default {
     },
     // 上传文件的按钮
     upload () {
-      let fileInput = document.getElementById('fileUp')
-      fileInput.click()
+      this.$refs.fileInput.click()
     },
     pushText () {
       this.modelVisible = true
     },
-    modelSend () {},
-    modelCancel () {},
     refresh () {
       let rootDir = this.$data.dir
       this.getFolder(rootDir, '')
@@ -292,41 +304,11 @@ export default {
         iframe.id = 'myIframe'
         document.body.appendChild(iframe)
       }
-    },
-    /**
-     * XMLHttpRequest的封装
-     * @params options 参考jquery.ajax
-     */
-    xhrSend (options) {
-      var callback
-      return (function () {
-        var xhr = new XMLHttpRequest()
-        var id = ++this.xhrId
-        xhr.open(options.method, options.url)
-        xhr.send(options.data)
-        callback = function () {
-          if (xhr.readyState === 4) {
-            delete this.xhrCallbacks[id]
-            this.xhrCallbackCount--
-            xhr.onreadystatechange = function () {}
-            if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304) {
-              options.success && options.success(xhr.responseText)
-            } else {
-              options.error && options.error(xhr.responseText)
-            }
-            if (this.xhrCallbackCount === 0) {
-              options.done && options.done()
-            }
-          }
-        }
-        this.xhrCallbackCount++
-        xhr.onreadystatechange = this.xhrCallbacks[id] = callback
-      })()
     }
   },
   mounted () {
     this.getFolder()
-    this.initEvents()
+    this.initWebsocket()
   }
 }
 </script>
