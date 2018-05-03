@@ -114,9 +114,13 @@ export default {
               body: formData
             }).then(res => res.json())
               .then(data => {
-                console.log('succ')
-                this.refresh()
-                this.hideTip()
+                if (data.code === 's_ok') {
+                  console.log('succ')
+                  this.refresh()
+                  this.hideTip()
+                } else {
+                  alert(data.summary)
+                }
               })
             console.log(test)
           }
