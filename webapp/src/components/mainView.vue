@@ -101,6 +101,7 @@ export default {
     uploadFile (e) {
       this.showTip('上传中...')
       let files = e.target.files
+      if (files.length === 0) return
       let rootDir = this.dir
       if (files) {
         for (const key in files) {
@@ -117,10 +118,17 @@ export default {
                 if (data.code === 's_ok') {
                   console.log('succ')
                   this.refresh()
-                  this.hideTip()
                 } else {
-                  alert(data.summary)
+                  if (data.summary && data.summary.errno === -4058) {
+                    alert('文件名名称不支持！')
+                  } else if (data.summary && data.summary.errno) {
+                    alert('err: ' + data.summary.errno)
+                  } else {
+                    alert('err')
+                  }
                 }
+                this.hideTip()
+                e.target.value = ''
               })
             console.log(test)
           }
