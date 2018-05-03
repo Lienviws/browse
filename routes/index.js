@@ -17,14 +17,14 @@ const uploadDir = path.join(path.resolve(__dirname, "../"), "uploads");
 const zipName = "moreFiles.zip";
 
 /* GET home page. */
-router.get('/', function (req, res, next) {
+router.get('/', (req, res, next) => {
     res.render('index');
     core.folderExist(zipDir, true);
     core.folderExist(uploadDir, true);
     core.getServerInfo();
 });
 
-router.get('/hasPassword', function (req, res, next) {
+router.get('/hasPassword', (req, res, next) => {
     if (!Password.hasPassword()) {
         res.send({ "code": "s_ok", "res": false });
     } else {
@@ -32,7 +32,7 @@ router.get('/hasPassword', function (req, res, next) {
     }
 });
 
-router.post('/login', function (req, res, next) {
+router.post('/login', (req, res, next) => {
     if (Password.pass(req)) {
         res.send({ "code": "s_ok", "res": true });
     } else {
@@ -41,7 +41,7 @@ router.post('/login', function (req, res, next) {
 });
 
 //下载单个文件
-router.get('/downloadSingle', function (req, res, next) {
+router.get('/downloadSingle', (req, res, next) => {
     if (!Password.pass(req)) {
         res.status(403).end()
     }
@@ -51,7 +51,7 @@ router.get('/downloadSingle', function (req, res, next) {
         currFile = path.join(currDir, fileName),
         fReadStream;
 
-    fs.exists(currFile, function (exist) {
+    fs.exists(currFile, (exist) => {
         if (exist) {
             res.set({
                 "Content-type": "application/octet-stream",
@@ -59,7 +59,7 @@ router.get('/downloadSingle', function (req, res, next) {
             });
             fReadStream = fs.createReadStream(currFile);
             fReadStream.on("data", (chunk) => res.write(chunk, "binary"));
-            fReadStream.on("end", function () {
+            fReadStream.on("end", () => {
                 res.end();
                 //删除生成的压缩文件
                 if (comefrom == "archive") {
@@ -75,7 +75,7 @@ router.get('/downloadSingle', function (req, res, next) {
 });
 
 //获取下载文件的地址
-router.post('/download', function (req, res) {
+router.post('/download', (req, res) => {
     if (!Password.pass(req)) {
         res.status(403).end()
     }
@@ -85,7 +85,7 @@ router.post('/download', function (req, res) {
         fileNameArray = [];
 
     //将文件和文件夹分开命名
-    fileArray.forEach(function (file) {
+    fileArray.forEach((file) => {
         if (file.type == 1) {
             filesCount++;
             fileNameArray.push(file.name);
@@ -121,11 +121,11 @@ router.post('/download', function (req, res) {
                 archive.file(filePath, { name: path.basename(filePath) })
             })
 
-        archive.on('error', function (err) {
+        archive.on('error', (err) => {
             res.send({ "code": "failed", "summary": err });
             throw err;
         });
-        archive.on('end', function (a) {
+        archive.on('end', (a) => {
             //输出下载链接
             var downloadUrl = "/downloadSingle?dir=" + encodeURIComponent(zipDir) + "&name=" + encodeURIComponent(zipName) + "&comefrom=archive";
             res.send({ "code": "s_ok", "url": downloadUrl });
@@ -134,22 +134,23 @@ router.post('/download', function (req, res) {
     }
 });
 
-//上传文件
+// 用multer中间件保存文件
 const upload = multer({ dest: './uploads/' });
 const cpUpload = upload.fields([
     { name: 'file' },
     { name: 'src' }
 ]);
-router.post("/uploadFile", cpUpload, function (req, res, next) {
+router.post("/uploadFile", cpUpload, (req, res, next) => {
     if (!Password.pass(req)) {
         res.status(403).end()
     }
     const files = req.files.file,
         dir = req.body.dir;
 
-        let fsPromise = function (file) {
-        return new Promise(function (resolved, rejected) {
-            fs.rename(path.join(uploadDir, file.filename), path.join(dir, file.originalname), function (err) {
+    let fsPromise = (file) => {
+        return new Promise((resolved, rejected) => {
+            // 剪切并重命名
+            fs.rename(path.join(uploadDir, file.filename), path.join(dir, file.originalname), (err) => {
                 if (err) {
                     rejected(err);
                 } else {
@@ -159,20 +160,41 @@ router.post("/uploadFile", cpUpload, function (req, res, next) {
         });
     }
     Promise.all(files.map(fsPromise))
-        .then(function () {
+        .then(() => {
             res.set({
                 'Content-Type': 'text/html'
             });
             res.send({ "code": "s_ok" });
             // res.end();
         })
-        .catch(function (err) {
+        .catch((err) => {
             res.send({ "code": "failed", "summary": err });
         });
 });
 
+router.post('/existFile', (req, res) => {
+    if (!Password.pass(req)) {
+        res.status(403).end()
+    }
+    let targetDir = req.body.filePath
+
+    if (!targetDir) {
+        res.send({ "code": "failed", "summary": 'args err' })
+        return
+    }
+
+    res.set("Content-type", "text/json");
+    fs.exists(targetDir, exist => {
+        if (exist) {
+            res.send({ "code": "s_ok", "res": true});
+        } else {
+            res.send({ "code": "s_ok", "res": false});
+        }
+    })
+})
+
 //读取目录文件
-router.post('/loadFile', function (req, res) {
+router.post('/loadFile', (req, res) => {
     if (!Password.pass(req)) {
         res.status(403).end()
     }
@@ -192,15 +214,15 @@ router.post('/loadFile', function (req, res) {
     }
     res.set("Content-type", "text/json");
     fs_ext.readdir(currDir)
-        .then(function (files) {
+        .then((files) => {
             return _.clone(files);
         })
-        .then(function (fileArray) {
+        .then((fileArray) => {
             let fileDetailArray = [];
 
             function getFileInfo(fileName) {
-                return new Promise(function (resolve, rejected) {
-                    fs.lstat(path.join(currDir, fileName), function (err, stats) {
+                return new Promise((resolve, rejected) => {
+                    fs.lstat(path.join(currDir, fileName), (err, stats) => {
                         if (!err) {
                             let obj = {
                                 name: fileName,
@@ -227,7 +249,7 @@ router.post('/loadFile', function (req, res) {
             }
 
             Promise.all(fileArray.map(getFileInfo))
-                .then(function () {
+                .then(() => {
                     //TODO:sort 按文件夹在上的顺序
                     fileDetailArray.sort(sortOrder);
                     let result = { "code": "s_ok", "path": currDir, "var": fileDetailArray, sysInfo: sysInfo };
@@ -278,13 +300,13 @@ router.post('/loadFile', function (req, res) {
                         return forward;
                     }
                 })
-                .catch(function (err) {
+                .catch((err) => {
                     let result = { "code": "failed", "path": currDir, "summary": err };
                     res.send(result);
                 })
                 .done();
         })
-        .catch(function (err) {
+        .catch((err) => {
             let result = { "code": "failed", "path": currDir, "summary": err };
             res.send(result);
         })

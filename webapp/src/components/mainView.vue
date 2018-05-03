@@ -6,11 +6,16 @@
         <input type="button" @click="upload" value="upload">
         <input type="button" @click="pushText" value="pushText">
         <form target="iframe" action="/uploadFile" style="display:none;" method="post" id="form1" enctype="multipart/form-data">
-          <input ref="fileInput" name="file" type="file" multiple="true" @change="onFileChange">
+          <input ref="fileInput" name="file" type="file" multiple="true" @change="uploadFile">
           <input name="dir" type="text" :value="dir">
         </form>
-        sIP: {{sIP}};
-        CurrentPath: {{dir}}
+        <span>serviceIP: {{sIP}};currentPath:
+          <span v-show="!pathEditable" @click="changeDir">{{dir}}</span>
+          <input ref="pathInput" v-show="pathEditable" v-model="inputDir" style="width:400px" />
+          <input type="button" v-show="pathEditable" @click="confirmDir" value="confirm" />
+          <input type="button" v-show="pathEditable" @click="cancelPathInput" value="cancel" />
+          <span class="tips" v-show="tipVisible">{{tipText}}</span>
+        </span>
       </div>
       <div id="data">
         <table style="width:100%">
@@ -65,19 +70,23 @@ export default {
       xhrCallbackCount: 0,
       files: [],
       dir: '',
+      inputDir: '',
+      tipText: '',
       imgSrc: {
         folder: normalFolder,
         file: normal
       },
+      pathEditable: false,
       modelVisible: false,
       hitVisible: false,
+      tipVisible: false,
       hitText: '',
       modelInput: '',
       sIP: '' // 服务器ip
     }
   },
   methods: {
-    initWebsocket () {
+    initSocket () {
       socket.on('connect', () => {
         console.log('conneted socket')
       })
@@ -89,7 +98,8 @@ export default {
         this.hitText = res
       })
     },
-    onFileChange (e) {
+    uploadFile (e) {
+      this.showTip('上传中...')
       let files = e.target.files
       let rootDir = this.dir
       if (files) {
@@ -98,7 +108,7 @@ export default {
             let formData = new FormData()
             formData.append('file', files[key])
             formData.append('dir', rootDir)
-            fetch('/uploadFile', {
+            let test = fetch('/uploadFile', {
               method: 'POST',
               credentials: 'include',
               body: formData
@@ -106,7 +116,9 @@ export default {
               .then(data => {
                 console.log('succ')
                 this.refresh()
+                this.hideTip()
               })
+            console.log(test)
           }
         }
       } else {
@@ -121,7 +133,7 @@ export default {
         iframe.name = 'iframe'
         iframe.src = ''
         iframe.style.display = 'none'
-        iframe.onload = function () {
+        iframe.onload = () => {
           let result = iframe.contentWindow.document.body.innerText
           if (!result) {
             return
@@ -129,6 +141,7 @@ export default {
           result = JSON.parse(result)
           if (result.code === 's_ok') {
             console.log('succ')
+            this.hideTip()
           } else {
             alert('failed!-2')
           }
@@ -150,14 +163,14 @@ export default {
         return false
       }
       let folderName = tdContent.getElementsByTagName('span')[0].innerText
-      let rootDir = this.$data.dir
+      let rootDir = this.dir
       this.getFolder(rootDir, folderName)
     },
     /**
      * 按照关键字排序
      */
     orderBy (order) {
-      let rootDir = this.$data.dir
+      let rootDir = this.dir
       this.getFolder(rootDir, '', order)
     },
     /**
@@ -165,17 +178,17 @@ export default {
      */
     toggleAll () {
       let count = 0
-      this.$data.files.forEach(function (file) {
+      this.files.forEach(file => {
         if (file.check) {
           count++
         }
       })
       if (count > 0) {
-        this.$data.files.map(function (file) {
+        this.files.map(file => {
           file.check = false
         })
       } else {
-        this.$data.files.map(function (file) {
+        this.files.map(file => {
           file.check = true
         })
       }
@@ -207,26 +220,65 @@ export default {
         })
       }).then(res => res.json())
         .then(data => {
-          let self = this
           if (data.code !== 's_ok') {
             alert(data.summary.code)
             return false
           }
-          self.$data.dir = data.path
-          self.$data.sIP = data.sysInfo.ipv4[0]
-          self.$data.files = []
-          data['var'].map(function (file) {
+          this.dir = data.path
+          this.inputDir = this.dir
+          this.sIP = data.sysInfo.ipv4[0]
+          this.files = []
+          data['var'].map(file => {
             file.check = false
-            self.$data.files.push(file)
+            this.files.push(file)
           })
         })
+    },
+    existFile (filePath, cb) {
+      fetch('/existFile', {
+        method: 'POST',
+        credentials: 'include',
+        headers: new Headers({
+          'Content-Type': 'application/json' // 指定提交方式为表单提交
+        }),
+        body: JSON.stringify({
+          filePath
+        })
+      }).then(res => res.json())
+        .then(data => {
+          if (data.code === 's_ok') {
+            cb && cb(data.res)
+          } else {
+            alert(data.summary.code)
+          }
+        })
+    },
+    changeDir () {
+      this.pathEditable = true
+      setTimeout(() => {
+        this.$refs.pathInput.focus()
+      }, 0)
+    },
+    cancelPathInput () {
+      this.pathEditable = false
+      this.inputDir = this.dir
+    },
+    confirmDir () {
+      this.existFile(this.inputDir, (exist) => {
+        if (exist) {
+          this.pathEditable = false
+          this.getFolder(this.inputDir, '')
+        } else {
+          alert('wrong filePath')
+        }
+      })
     },
     /**
      * 下载文件
      */
     download () {
       let downloadFileArray = []
-      this.$data.files.forEach((file, index) => {
+      this.files.forEach((file, index) => {
         if (file.check) {
           downloadFileArray.push({ name: file.name, type: file.type })
         }
@@ -234,7 +286,7 @@ export default {
       if (!downloadFileArray.length) {
         return false
       }
-      let rootDir = this.$data.dir
+      let rootDir = this.dir
 
       fetch('/download', {
         method: 'POST',
@@ -263,7 +315,7 @@ export default {
       this.modelVisible = true
     },
     refresh () {
-      let rootDir = this.$data.dir
+      let rootDir = this.dir
       this.getFolder(rootDir, '')
     },
     /**
@@ -304,11 +356,23 @@ export default {
         iframe.id = 'myIframe'
         document.body.appendChild(iframe)
       }
+    },
+    showTip (text, time) {
+      this.tipText = text
+      this.tipVisible = true
+      if (time) {
+        setTimeout(() => {
+          this.hideTip()
+        }, time)
+      }
+    },
+    hideTip () {
+      this.tipVisible = false
     }
   },
   mounted () {
     this.getFolder()
-    this.initWebsocket()
+    this.initSocket()
   }
 }
 </script>
