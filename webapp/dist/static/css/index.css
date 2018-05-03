@@ -12,6 +12,12 @@ a {
   text-decoration: underline;
 }
 
+.tips {
+  margin-left: 50px;
+  font-size: 12px;
+  color: #666;
+}
+
 .file {
   color: black;
   cursor: default;
