@@ -48,9 +48,9 @@
         <textarea rows="5" cols="55" v-model="modelInput" @keydown="onTextareaKeydown"></textarea>
         <span class="messageHit" v-show="hitVisible">{{hitText}}</span>
       </Dialog>
-      <Confirm :visible.sync="confirmVisible">
+      <Confirm :visible.sync="confirmVisible" :height="300">
         <span class="title">broadcast</span>
-        <textarea rows="5" cols="55" v-model="broadcastInput" disabled></textarea>
+        <textarea rows="15" cols="55" v-model="broadcastInput"></textarea>
       </Confirm>
   </div>
 </template>
@@ -71,7 +71,7 @@ export default {
   },
   data () {
     return {
-      id: new Date().getTime(),
+      clientId: new Date().getTime(),
       files: [],
       dir: '',
       inputDir: '',
@@ -93,6 +93,7 @@ export default {
   },
   methods: {
     initSocket () {
+      const clientId = this.clientId
       socket.on('connect', () => {
         console.log('conneted socket')
       })
@@ -104,9 +105,20 @@ export default {
         this.hitText = res
       })
       socket.on('broadcast res', (res) => {
-        if (res.id === this.id) return
-        this.broadcastInput = res.text
-        this.confirmVisible = true
+        const msg = res.msg
+        switch (res.for) {
+          case 'others':
+            if (msg.id === clientId) return
+            this.broadcastInput = msg.text
+            this.confirmVisible = true
+            break
+          case 'sender':
+            this.hitVisible = true
+            this.hitText = msg
+            break
+          default:
+            break
+        }
       })
     },
     uploadFile (e) {
@@ -120,28 +132,32 @@ export default {
             let formData = new FormData()
             formData.append('file', files[key])
             formData.append('dir', rootDir)
-            let test = fetch('/uploadFile', {
+            fetch('/uploadFile', {
               method: 'POST',
               credentials: 'include',
               body: formData
-            }).then(res => res.json())
-              .then(data => {
-                if (data.code === 's_ok') {
-                  console.log('succ')
-                  this.refresh()
+            }).then(res => {
+              if (res.status === 403) {
+                this.gotoLogin()
+                throw new Error('身份错误，重新登录')
+              }
+              return res.json()
+            }).then(data => {
+              if (data.code === 's_ok') {
+                console.log('succ')
+                this.refresh()
+              } else {
+                if (data.summary && data.summary.errno === -4058) {
+                  alert('文件名名称不支持！')
+                } else if (data.summary && data.summary.errno) {
+                  alert('err: ' + data.summary.errno)
                 } else {
-                  if (data.summary && data.summary.errno === -4058) {
-                    alert('文件名名称不支持！')
-                  } else if (data.summary && data.summary.errno) {
-                    alert('err: ' + data.summary.errno)
-                  } else {
-                    alert('err')
-                  }
+                  alert('err')
                 }
-                this.hideTip()
-                e.target.value = ''
-              })
-            console.log(test)
+              }
+              this.hideTip()
+              e.target.value = ''
+            }).catch((e) => console.log(e.message))
           }
         }
       } else {
@@ -228,7 +244,7 @@ export default {
     },
     boardcastMessage () {
       socket.emit('broadcast', {
-        id: this.id,
+        id: this.clientId,
         text: this.modelInput
       })
     },
@@ -247,21 +263,26 @@ export default {
           folderName,
           order
         })
-      }).then(res => res.json())
-        .then(data => {
-          if (data.code !== 's_ok') {
-            alert(data.summary.code)
-            return false
-          }
-          this.dir = data.path
-          this.inputDir = this.dir
-          this.sIP = data.sysInfo.ipv4[0]
-          this.files = []
-          data['var'].map(file => {
-            file.check = false
-            this.files.push(file)
-          })
+      }).then(res => {
+        if (res.status === 403) {
+          this.gotoLogin()
+          throw new Error('身份错误，重新登录')
+        }
+        return res.json()
+      }).then(data => {
+        if (data.code !== 's_ok') {
+          alert(data.summary.code)
+          return false
+        }
+        this.dir = data.path
+        this.inputDir = this.dir
+        this.sIP = data.sysInfo.ipv4[0]
+        this.files = []
+        data['var'].map(file => {
+          file.check = false
+          this.files.push(file)
         })
+      }).catch((e) => console.log(e.message))
     },
     existFile (filePath, cb) {
       fetch('/existFile', {
@@ -273,14 +294,19 @@ export default {
         body: JSON.stringify({
           filePath
         })
-      }).then(res => res.json())
-        .then(data => {
-          if (data.code === 's_ok') {
-            cb && cb(data.res)
-          } else {
-            alert(data.summary.code)
-          }
-        })
+      }).then(res => {
+        if (res.status === 403) {
+          this.gotoLogin()
+          throw new Error('身份错误，重新登录')
+        }
+        return res.json()
+      }).then(data => {
+        if (data.code === 's_ok') {
+          cb && cb(data.res)
+        } else {
+          alert(data.summary.code)
+        }
+      }).catch((e) => console.log(e.message))
     },
     changeDir () {
       this.pathEditable = true
@@ -327,14 +353,19 @@ export default {
           dir: rootDir,
           fileArray: downloadFileArray
         })
-      }).then(res => res.json())
-        .then(data => {
-          if (data.code === 's_ok') {
-            this.downloadByIframe(data.url)
-          } else {
-            alert(data.summary)
-          }
-        })
+      }).then(res => {
+        if (res.status === 403) {
+          this.gotoLogin()
+          throw new Error('身份错误，重新登录')
+        }
+        return res.json()
+      }).then(data => {
+        if (data.code === 's_ok') {
+          this.downloadByIframe(data.url)
+        } else {
+          alert(data.summary)
+        }
+      }).catch((e) => console.log(e.message))
     },
     // 上传文件的按钮
     upload () {
@@ -397,6 +428,11 @@ export default {
     },
     hideTip () {
       this.tipVisible = false
+    },
+    gotoLogin () {
+      this.$router.push({
+        path: 'login'
+      })
     }
   },
   mounted () {

@@ -11,11 +11,13 @@ module.exports = (server) => {
 
         client.on('message', (msg) => {
             console.log('message: \n' + msg);
-            io.emit('message res', 'send succ');
+            client.emit('message res', 'send succ');
         });
 
         client.on("broadcast", (msg) =>{
-            client.broadcast.emit('broadcast res', { for: 'others', msg: msg });
+            client.emit('broadcast res', { for: 'sender', msg: 'broadcast succ' });
+            // client.broadcast.emit('broadcast res', { for: 'others', msg: msg }); // 非自己广播
+            io.emit('broadcast res', { for: 'others', msg: msg }); // 全体广播
         });
     });
 };

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-show="dialogVisible" class="model">
+    <div v-show="dialogVisible" class="model" :style="{'height': height===null ? '200px':`${height}px`}">
       <slot></slot>
       <div class="foot">
         <input type="button" @click="dialogVisible=false" value="ok">
@@ -17,6 +17,9 @@ export default {
     visible: {
       type: Boolean,
       default: false
+    },
+    height: {
+      default: null
     }
   },
   data () {
