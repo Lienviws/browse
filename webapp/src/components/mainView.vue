@@ -43,11 +43,15 @@
           </tbody>
         </table>
       </div>
-      <Dialog :visible.sync="modelVisible" @confirm="sendMessage">
+      <Dialog :visible.sync="modelVisible" @confirm="sendMessage" @boardcast="boardcastMessage">
         <span class="title">set content</span>
         <textarea rows="5" cols="55" v-model="modelInput" @keydown="onTextareaKeydown"></textarea>
         <span class="messageHit" v-show="hitVisible">{{hitText}}</span>
       </Dialog>
+      <Confirm :visible.sync="confirmVisible">
+        <span class="title">broadcast</span>
+        <textarea rows="5" cols="55" v-model="broadcastInput" disabled></textarea>
+      </Confirm>
   </div>
 </template>
 
@@ -55,34 +59,36 @@
 import normal from '@/../static/images/normal.png'
 import normalFolder from '@/../static/images/normal_folder.png'
 import Dialog from './dialog'
+import Confirm from './confirm'
 import io from 'socket.io-client'
 
 const socket = io(location.host)
 
 export default {
   components: {
-    Dialog
+    Dialog,
+    Confirm
   },
   data () {
     return {
-      xhrId: 0,
-      xhrCallbacks: {},
-      xhrCallbackCount: 0,
+      id: new Date().getTime(),
       files: [],
       dir: '',
       inputDir: '',
       tipText: '',
+      hitText: '',
+      modelInput: '',
+      broadcastInput: '',
+      sIP: '', // 服务器ip
       imgSrc: {
         folder: normalFolder,
         file: normal
       },
       pathEditable: false,
       modelVisible: false,
+      confirmVisible: false,
       hitVisible: false,
-      tipVisible: false,
-      hitText: '',
-      modelInput: '',
-      sIP: '' // 服务器ip
+      tipVisible: false
     }
   },
   methods: {
@@ -96,6 +102,11 @@ export default {
       socket.on('message res', (res) => {
         this.hitVisible = true
         this.hitText = res
+      })
+      socket.on('broadcast res', (res) => {
+        if (res.id === this.id) return
+        this.broadcastInput = res.text
+        this.confirmVisible = true
       })
     },
     uploadFile (e) {
@@ -214,6 +225,12 @@ export default {
     },
     sendMessage () {
       socket.emit('message', this.modelInput)
+    },
+    boardcastMessage () {
+      socket.emit('broadcast', {
+        id: this.id,
+        text: this.modelInput
+      })
     },
     /**
      * 通过ajax得到文件夹数据

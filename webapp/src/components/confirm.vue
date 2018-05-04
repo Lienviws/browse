@@ -3,9 +3,7 @@
     <div v-show="dialogVisible" class="model">
       <slot></slot>
       <div class="foot">
-        <input type="button" @click="modelSend" value="send">
-        <input type="button" @click="boardcast" value="boardcast">
-        <input type="button" @click="dialogVisible=false" value="cancel">
+        <input type="button" @click="dialogVisible=false" value="ok">
       </div>
     </div>
     <div v-show="dialogVisible" class="mask"></div>
@@ -14,7 +12,7 @@
 
 <script>
 export default {
-  name: 'Dialog',
+  name: 'Confirm',
   props: {
     visible: {
       type: Boolean,
@@ -24,14 +22,6 @@ export default {
   data () {
     return {
       dialogVisible: this.visible
-    }
-  },
-  methods: {
-    modelSend () {
-      this.$emit('confirm')
-    },
-    boardcast () {
-      this.$emit('boardcast')
     }
   },
   watch: {
