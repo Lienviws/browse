@@ -32,6 +32,18 @@ a {
   height: 16px;
 }
 
+wired-button {
+  font-size: 12px;
+}
+
+wired-textarea {
+  width: 350px;
+}
+
+.toggle-all {
+  padding: 5px 7px;
+}
+
 .model {
   z-index: 1000;
   background-color: white;

@@ -1,11 +1,11 @@
 <template>
   <div>
-    <div v-show="dialogVisible" class="model">
+    <div v-if="dialogVisible" class="model">
       <slot></slot>
       <div class="foot">
-        <input type="button" @click="modelSend" value="send">
-        <input type="button" @click="boardcast" value="boardcast">
-        <input type="button" @click="dialogVisible=false" value="cancel">
+        <wired-button @click="modelSend">send</wired-button>
+        <wired-button @click="boardcast">boardcast</wired-button>
+        <wired-button @click="dialogVisible=false">cancel</wired-button>
       </div>
     </div>
     <div v-show="dialogVisible" class="mask"></div>
