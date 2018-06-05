@@ -1,12 +1,12 @@
 <template>
   <div>
-    <div v-show="dialogVisible" class="model" :style="{'height': height===null ? '200px':`${height}px`}">
+    <div v-if="dialogVisible" class="model" :style="{'height': height===null ? '200px':`${height}px`}">
       <slot></slot>
       <div class="foot">
-        <input type="button" @click="dialogVisible=false" value="ok">
+        <wired-button @click="dialogVisible=false">ok</wired-button>
       </div>
     </div>
-    <div v-show="dialogVisible" class="mask"></div>
+    <div v-if="dialogVisible" class="mask"></div>
   </div>
 </template>
 

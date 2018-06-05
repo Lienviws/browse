@@ -1,58 +1,59 @@
 <template>
   <div>
     <div id="options" style="border-bottom:1px solid black;margin-bottom:5px;padding-bottom:5px;">
-        <input type="button" @click="forwardFolder" value="forward">
-        <input type="button" @click="download" value="download">
-        <input type="button" @click="upload" value="upload">
-        <input type="button" @click="pushText" value="pushText">
-        <form target="iframe" action="/uploadFile" style="display:none;" method="post" id="form1" enctype="multipart/form-data">
-          <input ref="fileInput" name="file" type="file" multiple="true" @change="uploadFile">
-          <input name="dir" type="text" :value="dir">
-        </form>
-        <span>serviceIP: {{sIP}};currentPath:
-          <span v-show="!pathEditable" @click="changeDir">{{dir}}</span>
-          <input ref="pathInput" v-show="pathEditable" v-model="inputDir" style="width:400px" />
-          <input type="button" v-show="pathEditable" @click="confirmDir" value="confirm" />
-          <input type="button" v-show="pathEditable" @click="cancelPathInput" value="cancel" />
-          <span class="tips" v-show="tipVisible">{{tipText}}</span>
-        </span>
+      <wired-button @click="forwardFolder">forward</wired-button>
+      <wired-button @click="download">download</wired-button>
+      <wired-button @click="upload">upload</wired-button>
+      <wired-button @click="pushText">pushText</wired-button>
+      <form target="iframe" action="/uploadFile" style="display:none;" method="post" id="form1" enctype="multipart/form-data">
+        <input ref="fileInput" name="file" type="file" multiple="true" @change="uploadFile">
+        <input name="dir" type="text" :value="dir">
+      </form>
+      <div style="display:inline">serviceIP: {{sIP}};currentPath:
+        <span v-show="!pathEditable" @click="changeDir">{{dir}}</span>
+        <wired-input ref="pathInput" v-if="pathEditable" style="width:400px" value="inputDir"></wired-input>
+        <wired-button v-if="pathEditable" @click="confirmDir">confirm</wired-button>
+        <wired-button v-if="pathEditable" @click="cancelPathInput">cancel</wired-button>
+        <span class="tips" v-show="tipVisible">{{tipText}}</span>
       </div>
-      <div id="data">
-        <table style="width:100%">
-          <thead>
-            <tr>
-              <td style="width:40px"><input type="button" @click="toggleAll()" value="[x]"></td>
-              <td @click="orderBy('name')">Name</td>
-              <td @click="orderBy('size')">Size</td>
-              <td @click="orderBy('ctime')">ModifyTime</td>
-              <td @click="orderBy('birthtime')">CreateTime</td>
-            </tr>
-          </thead>
-          <tbody :path="dir">
-            <tr :index="index" v-for="(file, index) in files" :key="index">
-              <td><input v-model="file.check" type="checkbox"></td>
-              <td @click="enterFolder">
-                <a href="javascript:void(0)" v-if="file.isDirectory"><img class="folder" :src="imgSrc.folder" width="16" height="16"></a>
-                <img v-else :src="imgSrc.file" width="16" height="16">
-                <span class="new" v-if="file.new"></span>
-                <a :class="{'folder':file.isDirectory,'file':file.isFile}" href="javascript:void(0)"><span>{{file.name}}</span></a>
-              </td>
-              <td>{{file.size}}</td>
-              <td>{{file.modifyTime}}</td>
-              <td>{{file.createTime}}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <Dialog :visible.sync="modelVisible" @confirm="sendMessage" @boardcast="boardcastMessage">
-        <span class="title">set content</span>
-        <textarea rows="5" cols="55" v-model="modelInput" @keydown="onTextareaKeydown"></textarea>
-        <span class="messageHit" v-show="hitVisible">{{hitText}}</span>
-      </Dialog>
-      <Confirm :visible.sync="confirmVisible" :height="300">
-        <span class="title">broadcast</span>
-        <textarea rows="15" cols="55" v-model="broadcastInput"></textarea>
-      </Confirm>
+    </div>
+    <div id="data">
+      <table style="width:100%">
+        <thead>
+          <tr>
+            <td style="width:40px"><wired-button class="toggle-all" @click="toggleAll">√</wired-button></td>
+            <td @click="orderBy('name')">Name</td>
+            <td @click="orderBy('size')">Size</td>
+            <td @click="orderBy('ctime')">ModifyTime</td>
+            <td @click="orderBy('birthtime')">CreateTime</td>
+          </tr>
+        </thead>
+        <tbody :path="dir">
+          <tr :index="index" v-for="(file, index) in files" :key="index">
+            <td><wired-checkbox @click="toggleSelect(file)" :checked="file.check"></wired-checkbox></td>
+            <td @click="enterFolder">
+              <a href="javascript:void(0)" v-if="file.isDirectory"><img class="folder" :src="imgSrc.folder" width="16" height="16"></a>
+              <img v-if="file.isFile" :src="imgSrc.file" width="16" height="16">
+              <span class="new" v-if="file.new"></span>
+              <a v-bind:class="{'folder':file.isDirectory,'file':file.isFile}" href="javascript:void(0)"><span>{{file.name}}</span></a>
+            </td>
+            <td>{{file.size}}</td>
+            <td>{{file.birthtime}}</td>
+            <td>{{file.mtime}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <Dialog :visible.sync="modelVisible" @confirm="sendMessage" @boardcast="boardcastMessage">
+      <span class="title">set content</span>
+
+      <wired-textarea ref="puttextTextarea" rows="5" @keydown="onTextareaKeydown"></wired-textarea>
+      <span class="messageHit" v-show="hitVisible">{{hitText}}</span>
+    </Dialog>
+    <Confirm :visible.sync="confirmVisible" :height="300">
+      <span class="title">Broadcast</span>
+      <wired-textarea ref="boardcastTextarea" rows="9"></wired-textarea>
+    </Confirm>
   </div>
 </template>
 
@@ -114,8 +115,11 @@ export default {
         switch (res.for) {
           case 'others':
             if (msg.id === clientId) return
-            this.broadcastInput = msg.text
             this.confirmVisible = true
+            setTimeout(() => {
+              this.$refs.boardcastTextarea.value = msg.text
+            }, 0)
+            // this.broadcastInput = msg.text
             break
           case 'sender':
             this.hitVisible = true
@@ -265,9 +269,11 @@ export default {
       this.getFolder(rootDir, '..')
     },
     sendMessage () {
+      this.modelInput = this.$refs.puttextTextarea.value
       socket.emit('message', this.modelInput)
     },
     boardcastMessage () {
+      this.modelInput = this.$refs.puttextTextarea.value
       socket.emit('broadcast', {
         id: this.clientId,
         text: this.modelInput
@@ -352,6 +358,7 @@ export default {
       this.pathEditable = true
       this.$nextTick(() => {
         this.$refs.pathInput.focus()
+        this.$refs.pathInput.value = this.inputDir
         this.$refs.pathInput.addEventListener('keypress', (e) => {
           if (e.keyCode === 13) {
             this.confirmDir()
@@ -364,6 +371,7 @@ export default {
       this.inputDir = this.dir
     },
     confirmDir () {
+      this.inputDir = this.$refs.pathInput.value
       this.existFile(this.inputDir, (exist) => {
         if (exist) {
           this.pathEditable = false
@@ -482,6 +490,9 @@ export default {
       this.$router.push({
         path: 'login'
       })
+    },
+    toggleSelect (file) {
+      file.check = !file.check
     }
   },
   mounted () {
