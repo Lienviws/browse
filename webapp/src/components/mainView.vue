@@ -122,44 +122,88 @@ export default {
       })
     },
     uploadFile (e) {
-      this.showTip('上传中...')
+      this.showTip('uploading...')
       let files = e.target.files
+
       if (files.length === 0) return
       let rootDir = this.dir
       if (files) {
-        for (const key in files) {
-          if (parseInt(key, 10) >= 0) {
-            let formData = new FormData()
-            formData.append('file', files[key])
-            formData.append('dir', rootDir)
-            fetch('/uploadFile', {
-              method: 'POST',
-              credentials: 'include',
-              body: formData
-            }).then(res => {
-              if (res.status === 403) {
-                this.gotoLogin()
-                throw new Error('身份错误，重新登录')
-              }
-              return res.json()
-            }).then(data => {
+        const formData = new FormData()
+        formData.append('file', files[0])
+        formData.append('dir', rootDir)
+
+        var xhr = new XMLHttpRequest()
+        /* 事件监听 */
+        xhr.upload.addEventListener('progress', (event) => {
+          if (!event.total) return
+          const percent = Math.round((event.loaded / event.total) * 100)
+          this.showTip(`uploading: ${percent}%`)
+        }, false)
+        xhr.addEventListener('load', (e) => {
+        }, false)
+        xhr.addEventListener('error', () => {
+        }, false)
+        xhr.addEventListener('abort', () => {
+        }, false)
+        /* 下面的url一定要改成你要发送文件的服务器url */
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            try {
+              const data = JSON.parse(xhr.responseText)
               if (data.code === 's_ok') {
                 console.log('succ')
                 this.refresh()
               } else {
                 if (data.summary && data.summary.errno === -4058) {
-                  alert('文件名名称不支持！')
+                  alert('folder name unsupported！')
                 } else if (data.summary && data.summary.errno) {
                   alert('err: ' + data.summary.errno)
                 } else {
                   alert('err')
                 }
               }
-              this.hideTip()
               e.target.value = ''
-            }).catch((e) => console.log(e.message))
+            } catch (error) {
+              console.log(error)
+            }
+            this.hideTip()
+          } else if (xhr.status === 403) {
+            this.gotoLogin()
+            console.log('identity error，relogin')
           }
         }
+        xhr.open('POST', '/uploadFile')
+        xhr.send(formData)
+
+        // let formData = new FormData()
+        // formData.append('file', files[key])
+        // formData.append('dir', rootDir)
+        // fetch('/uploadFile', {
+        //   method: 'POST',
+        //   credentials: 'include',
+        //   body: formData
+        // }).then(res => {
+        //   if (res.status === 403) {
+        //     this.gotoLogin()
+        //     throw new Error('identity error，relogin')
+        //   }
+        //   return res.json()
+        // }).then(data => {
+        //   if (data.code === 's_ok') {
+        //     console.log('succ')
+        //     this.refresh()
+        //   } else {
+        //     if (data.summary && data.summary.errno === -4058) {
+        //       alert('folder name unsupported！')
+        //     } else if (data.summary && data.summary.errno) {
+        //       alert('err: ' + data.summary.errno)
+        //     } else {
+        //       alert('err')
+        //     }
+        //   }
+        //   this.hideTip()
+        //   e.target.value = ''
+        // }).catch((e) => console.log(e.message))
       } else {
         // ie
         let form = document.getElementById('form1')
@@ -266,7 +310,7 @@ export default {
       }).then(res => {
         if (res.status === 403) {
           this.gotoLogin()
-          throw new Error('身份错误，重新登录')
+          throw new Error('identity error，relogin')
         }
         return res.json()
       }).then(data => {
@@ -297,7 +341,7 @@ export default {
       }).then(res => {
         if (res.status === 403) {
           this.gotoLogin()
-          throw new Error('身份错误，重新登录')
+          throw new Error('identity error，relogin')
         }
         return res.json()
       }).then(data => {
@@ -356,7 +400,7 @@ export default {
       }).then(res => {
         if (res.status === 403) {
           this.gotoLogin()
-          throw new Error('身份错误，重新登录')
+          throw new Error('identity error，relogin')
         }
         return res.json()
       }).then(data => {
