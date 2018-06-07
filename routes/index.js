@@ -230,9 +230,9 @@ router.post('/loadFile', (req, res) => {
                                 isFile: stats.isFile(),
                                 isDirectory: stats.isDirectory(),
                                 size: stats.size,
-                                birthtime: core.formatDate("yyyy-MM-dd hh:mm:ss", stats.birthtime),
-                                ctime: core.formatDate("yyyy-MM-dd hh:mm:ss", stats.ctime),   //create time
-                                mtime: core.formatDate("yyyy-MM-dd hh:mm:ss", stats.mtime)    //modify time
+                                birthtime: stats.birthtime.getTime(),
+                                ctime: stats.ctime.getTime(),   // create time
+                                mtime: stats.mtime.getTime()    // modify time
                             };
                             fileDetailArray.push(obj);
                             resolve();

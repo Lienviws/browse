@@ -24,8 +24,8 @@
               <td style="width:40px"><input type="button" @click="toggleAll()" value="[x]"></td>
               <td @click="orderBy('name')">Name</td>
               <td @click="orderBy('size')">Size</td>
-              <td @click="orderBy('birthtime')">CreateTime</td>
               <td @click="orderBy('ctime')">ModifyTime</td>
+              <td @click="orderBy('birthtime')">CreateTime</td>
             </tr>
           </thead>
           <tbody :path="dir">
@@ -33,12 +33,13 @@
               <td><input v-model="file.check" type="checkbox"></td>
               <td @click="enterFolder">
                 <a href="javascript:void(0)" v-if="file.isDirectory"><img class="folder" :src="imgSrc.folder" width="16" height="16"></a>
-                <img v-if="file.isFile" :src="imgSrc.normal" width="16" height="16">
-                <a v-bind:class="{'folder':file.isDirectory,'file':file.isFile}" href="javascript:void(0)"><span>{{file.name}}</span></a>
+                <img v-else :src="imgSrc.file" width="16" height="16">
+                <span class="new" v-if="file.new"></span>
+                <a :class="{'folder':file.isDirectory,'file':file.isFile}" href="javascript:void(0)"><span>{{file.name}}</span></a>
               </td>
               <td>{{file.size}}</td>
-              <td>{{file.birthtime}}</td>
-              <td>{{file.mtime}}</td>
+              <td>{{file.modifyTime}}</td>
+              <td>{{file.createTime}}</td>
             </tr>
           </tbody>
         </table>
@@ -56,10 +57,12 @@
 </template>
 
 <script>
-import normal from '@/../static/images/normal.png'
-import normalFolder from '@/../static/images/normal_folder.png'
+import fileImg from '@/../static/images/file.png'
+import folderImg from '@/../static/images/folder.png'
+import newImg from '@/../static/images/new.png'
 import Dialog from './dialog'
 import Confirm from './confirm'
+import { formatDate } from '@/utils'
 import io from 'socket.io-client'
 
 const socket = io(location.host)
@@ -81,14 +84,16 @@ export default {
       broadcastInput: '',
       sIP: '', // 服务器ip
       imgSrc: {
-        folder: normalFolder,
-        file: normal
+        folder: folderImg,
+        file: fileImg,
+        new: newImg
       },
       pathEditable: false,
       modelVisible: false,
       confirmVisible: false,
       hitVisible: false,
-      tipVisible: false
+      tipVisible: false,
+      uploading: false
     }
   },
   methods: {
@@ -137,7 +142,7 @@ export default {
         xhr.upload.addEventListener('progress', (event) => {
           if (!event.total) return
           const percent = Math.round((event.loaded / event.total) * 100)
-          this.showTip(`uploading: ${percent}%`)
+          this.showTip(`${files[0].name}: ${percent}%`)
         }, false)
         xhr.addEventListener('load', (e) => {
         }, false)
@@ -148,6 +153,7 @@ export default {
         /* 下面的url一定要改成你要发送文件的服务器url */
         xhr.onreadystatechange = () => {
           if (xhr.readyState === 4 && xhr.status === 200) {
+            this.uploading = false
             try {
               const data = JSON.parse(xhr.responseText)
               if (data.code === 's_ok') {
@@ -168,6 +174,7 @@ export default {
             }
             this.hideTip()
           } else if (xhr.status === 403) {
+            this.uploading = false
             this.gotoLogin()
             console.log('identity error，relogin')
           }
@@ -175,35 +182,7 @@ export default {
         xhr.open('POST', '/uploadFile')
         xhr.send(formData)
 
-        // let formData = new FormData()
-        // formData.append('file', files[key])
-        // formData.append('dir', rootDir)
-        // fetch('/uploadFile', {
-        //   method: 'POST',
-        //   credentials: 'include',
-        //   body: formData
-        // }).then(res => {
-        //   if (res.status === 403) {
-        //     this.gotoLogin()
-        //     throw new Error('identity error，relogin')
-        //   }
-        //   return res.json()
-        // }).then(data => {
-        //   if (data.code === 's_ok') {
-        //     console.log('succ')
-        //     this.refresh()
-        //   } else {
-        //     if (data.summary && data.summary.errno === -4058) {
-        //       alert('folder name unsupported！')
-        //     } else if (data.summary && data.summary.errno) {
-        //       alert('err: ' + data.summary.errno)
-        //     } else {
-        //       alert('err')
-        //     }
-        //   }
-        //   this.hideTip()
-        //   e.target.value = ''
-        // }).catch((e) => console.log(e.message))
+        this.uploading = true
       } else {
         // ie
         let form = document.getElementById('form1')
@@ -217,6 +196,7 @@ export default {
         iframe.src = ''
         iframe.style.display = 'none'
         iframe.onload = () => {
+          this.uploading = false
           let result = iframe.contentWindow.document.body.innerText
           if (!result) {
             return
@@ -232,6 +212,7 @@ export default {
 
         document.getElementById('options').appendChild(iframe)
         form.submit()
+        this.uploading = true
       }
     },
     onTextareaKeydown () {
@@ -292,6 +273,17 @@ export default {
         text: this.modelInput
       })
     },
+    addFileTag (file) {
+      file.check = false
+      file.createTime = formatDate(file.ctime, 'yyyy-MM-dd hh:mm:ss')
+      file.modifyTime = formatDate(file.mtime, 'yyyy-MM-dd hh:mm:ss')
+      addNew(file)
+      function addNew (file) {
+        if (Date.now() - file.mtime < 1000 * 5) { // 5秒内标记new
+          file.new = true
+        }
+      }
+    },
     /**
      * 通过ajax得到文件夹数据
      */
@@ -315,7 +307,11 @@ export default {
         return res.json()
       }).then(data => {
         if (data.code !== 's_ok') {
-          alert(data.summary.code)
+          if (data.summary.errno === -20) {
+            alert('can not enter file')
+          } else {
+            alert(data.summary.code)
+          }
           return false
         }
         this.dir = data.path
@@ -323,7 +319,7 @@ export default {
         this.sIP = data.sysInfo.ipv4[0]
         this.files = []
         data['var'].map(file => {
-          file.check = false
+          this.addFileTag(file)
           this.files.push(file)
         })
       }).catch((e) => console.log(e.message))
@@ -413,6 +409,10 @@ export default {
     },
     // 上传文件的按钮
     upload () {
+      if (this.uploading) {
+        alert('has uploading file')
+        return
+      }
       this.$refs.fileInput.click()
     },
     pushText () {
