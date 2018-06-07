@@ -350,9 +350,14 @@ export default {
     },
     changeDir () {
       this.pathEditable = true
-      setTimeout(() => {
+      this.$nextTick(() => {
         this.$refs.pathInput.focus()
-      }, 0)
+        this.$refs.pathInput.addEventListener('keypress', (e) => {
+          if (e.keyCode === 13) {
+            this.confirmDir()
+          }
+        })
+      })
     },
     cancelPathInput () {
       this.pathEditable = false
