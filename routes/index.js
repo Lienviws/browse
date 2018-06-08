@@ -15,6 +15,7 @@ const rootDir = path.resolve(__dirname, "../..");
 const zipDir = path.join(path.resolve(__dirname, "../"), "zip");
 const uploadDir = path.join(path.resolve(__dirname, "../"), "uploads");
 const zipName = "moreFiles.zip";
+const supportOpen = ".html/.htm";
 
 /* GET home page. */
 router.get('/', (req, res, next) => {
@@ -213,6 +214,22 @@ router.post('/loadFile', (req, res) => {
         order = req.body.order;
     }
     res.set("Content-type", "text/json");
+
+    //是否打开html文件
+    const fileInfo = fs.statSync(currDir);
+    if (fileInfo.isFile()) { //文件
+        const extName = path.extname(currDir).toLocaleLowerCase();
+        //是否支持拓展名打开
+        if(extName && supportOpen.indexOf(extName) !== -1){
+            const result = {"code":"s_ok", "var":{fileName:path.basename(currDir)}, type:"html"};
+            res.send(result);
+        } else {
+            let result = { "code": "failed", "path": currDir, summary: 'only support open html' };
+            res.send(result);
+        }
+        return
+    }
+
     fs_ext.readdir(currDir)
         .then((files) => {
             return _.clone(files);

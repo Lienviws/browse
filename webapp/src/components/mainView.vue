@@ -1,6 +1,7 @@
 <template>
   <div>
     <div id="options" style="border-bottom:1px solid black;margin-bottom:5px;padding-bottom:5px;">
+        <input type="button" @click="refresh" value="fresh">
         <input type="button" @click="forwardFolder" value="forward">
         <input type="button" @click="download" value="download">
         <input type="button" @click="upload" value="upload">
@@ -160,10 +161,10 @@ export default {
                 console.log('succ')
                 this.refresh()
               } else {
-                if (data.summary && data.summary.errno === -4058) {
+                if (data.err && data.err.errno === -4058) {
                   alert('folder name unsupported！')
-                } else if (data.summary && data.summary.errno) {
-                  alert('err: ' + data.summary.errno)
+                } else if (data.err && data.err.errno) {
+                  alert('err: ' + data.err.errno)
                 } else {
                   alert('err')
                 }
@@ -307,12 +308,21 @@ export default {
         return res.json()
       }).then(data => {
         if (data.code !== 's_ok') {
-          if (data.summary.errno === -20) {
-            alert('can not enter file')
+          if (data.summary) {
+            alert(data.summary)
           } else {
-            alert(data.summary.code)
+            alert(data.err.code)
           }
           return false
+        } else if (data.type === 'html') {
+          this.$router.push({
+            path: 'preview',
+            query: {
+              filename: data['var'].fileName,
+              dir: dir
+            }
+          })
+          return
         }
         this.dir = data.path
         this.inputDir = this.dir
@@ -344,7 +354,7 @@ export default {
         if (data.code === 's_ok') {
           cb && cb(data.res)
         } else {
-          alert(data.summary.code)
+          alert(data.err.code)
         }
       }).catch((e) => console.log(e.message))
     },
@@ -408,7 +418,7 @@ export default {
         if (data.code === 's_ok') {
           this.downloadByIframe(data.url)
         } else {
-          alert(data.summary)
+          alert(data.err)
         }
       }).catch((e) => console.log(e.message))
     },
