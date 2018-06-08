@@ -2,7 +2,7 @@
   <div v-show="visible">
     <p>press password</p>
     <div>
-      <input v-model="inputValue" style="width:200px" />
+      <input v-model="inputValue" style="width:200px" @keypress="onInputKeyPress" />
     </div>
     <div style="margin-top:10px">
       <input type="button" @click="confirm" value="confirm">
@@ -55,6 +55,11 @@ export default {
             alert('server err')
           }
         })
+    },
+    onInputKeyPress (e) {
+      if (e.keyCode === 13) {
+        this.confirm()
+      }
     },
     gotoMainPage () {
       this.$router.push({

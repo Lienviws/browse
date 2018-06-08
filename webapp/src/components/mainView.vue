@@ -65,6 +65,7 @@ import Dialog from './dialog'
 import Confirm from './confirm'
 import { formatDate } from '@/utils'
 import io from 'socket.io-client'
+import Cookies from 'js-cookie'
 
 const socket = io(location.host)
 
@@ -315,16 +316,11 @@ export default {
           }
           return false
         } else if (data.type === 'html') {
-          this.$router.push({
-            path: 'preview',
-            query: {
-              filename: data['var'].fileName,
-              dir: dir
-            }
-          })
+          window.open('/preview?filename=' + data['var'].fileName)
           return
         }
         this.dir = data.path
+        Cookies.set('dir', this.dir)
         this.inputDir = this.dir
         this.sIP = data.sysInfo.ipv4[0]
         this.files = []

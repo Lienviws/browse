@@ -17,6 +17,53 @@ const uploadDir = path.join(path.resolve(__dirname, "../"), "uploads");
 const zipName = "moreFiles.zip";
 const supportOpen = ".html/.htm";
 
+const requestList = [
+    '/preview',
+    '/hasPassword',
+    '/login',
+    '/downloadSingle',
+    '/download',
+    '/uploadFile',
+    '/existFile',
+    '/loadFile'
+]
+
+router.get("*", function(req, res, next) {
+    const urlPath = req.url && req.url.split('?')[0]
+    if (requestList.includes(urlPath)) {
+        next()
+        return
+    }
+    const currDir = req.cookies.dir
+    const fileDir = path.join(currDir, req.url);
+
+    let fileInfo = {}
+    try {
+        fileInfo = fs.statSync(fileDir)
+    } catch (error) {
+        // debugger;
+    }
+    res.sendFile(fileDir)
+});
+
+router.get(/\/preview.*/, function(req, res, next) {
+    const currDir = req.cookies.dir
+    const fileName = req.url.split('filename=') && req.url.split('filename=')[1]
+    if (!fileName) {
+        next()
+        return
+    }
+    const fileDir = path.join(currDir, fileName)
+    
+    let fileInfo = {}
+    try {
+        fileInfo = fs.statSync(fileDir)
+    } catch (error) {
+        // debugger;
+    }
+    res.sendFile(fileDir)
+});
+
 /* GET home page. */
 router.get('/', (req, res, next) => {
     res.render('index');
@@ -224,7 +271,7 @@ router.post('/loadFile', (req, res) => {
             const result = {"code":"s_ok", "var":{fileName:path.basename(currDir)}, type:"html"};
             res.send(result);
         } else {
-            let result = { "code": "failed", "path": currDir, summary: 'only support open html' };
+            let result = { "code": "failed", "path": currDir, summary: 'only support open .html' };
             res.send(result);
         }
         return
@@ -328,7 +375,6 @@ router.post('/loadFile', (req, res) => {
             res.send(result);
         })
         .done();
-});
-
+    });
 
 module.exports = router;
