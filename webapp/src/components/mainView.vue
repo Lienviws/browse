@@ -228,7 +228,17 @@ export default {
       if (!tdContent) {
         return false
       }
-      let folderName = tdContent.getElementsByTagName('span')[0].innerText
+      let folderDom = tdContent.querySelector('a.folder')
+      let fileDom = tdContent.querySelector('a.file')
+      if (fileDom) {
+        alert('only support open .html')
+        return
+      }
+      if (!folderDom) {
+        alert('opt error')
+        return
+      }
+      let folderName = folderDom.querySelector('span').innerText
       let rootDir = this.dir
       this.getFolder(rootDir, folderName)
     },
