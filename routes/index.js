@@ -47,6 +47,9 @@ router.get("*", function(req, res, next) {
     }
     res.sendFile(fileDir)
 });
+router.post("*", function(req, res, next) {
+    next()
+});
 
 router.get(/\/preview.*/, function(req, res, next) {
     const currDir = req.cookies.dir
@@ -257,6 +260,8 @@ router.post('/loadFile', (req, res) => {
     } else {
         currDir = path.join(req.body.dir, req.body.folderName);
     }
+
+    console.log(reqIp + ' try to access ' + currDir)
 
     if (!req.body.order) {
         order = "name";
