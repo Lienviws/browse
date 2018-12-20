@@ -36,7 +36,7 @@
                 <a href="javascript:void(0)" v-if="file.isDirectory"><img class="folder" :src="imgSrc.folder" width="16" height="16"></a>
                 <img v-else :src="imgSrc.file" width="16" height="16">
                 <span class="new" v-if="file.new"></span>
-                <a :class="{'folder':file.isDirectory,'file':file.isFile}" href="javascript:void(0)"><span>{{file.name}}</span></a>
+                <a :class="{'folder':file.isDirectory,'file':file.isFile}" :name="file.name" href="javascript:void(0)"><span>{{file.name}}</span></a>
               </td>
               <td>{{file.size}}</td>
               <td>{{file.modifyTime}}</td>
@@ -230,16 +230,26 @@ export default {
       }
       let folderDom = tdContent.querySelector('a.folder')
       let fileDom = tdContent.querySelector('a.file')
+      let rootDir = this.dir
+      let folderName = ''
+
       if (fileDom) {
-        alert('only support open .html')
-        return
+        if (/.html?$/.test(fileDom.name)) {
+          folderName = fileDom.name
+        } else {
+          alert('only support open .html')
+          return
+        }
       }
-      if (!folderDom) {
+      if (folderDom) {
+        folderName = folderDom.name
+      }
+
+      if (!folderName) {
         alert('opt error')
         return
       }
-      let folderName = folderDom.querySelector('span').innerText
-      let rootDir = this.dir
+
       this.getFolder(rootDir, folderName)
     },
     /**

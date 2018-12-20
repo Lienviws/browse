@@ -17,6 +17,8 @@ const uploadDir = path.join(path.resolve(__dirname, "../"), "uploads");
 const zipName = "moreFiles.zip";
 const supportOpen = ".html/.htm";
 
+const ipDir = {}
+
 const requestList = [
     '/preview',
     '/hasPassword',
@@ -247,10 +249,11 @@ router.post('/loadFile', (req, res) => {
         res.status(403).end()
     }
     let currDir = "",
-        order = "";
-
+    order = "";
+    
+    const reqIp = req.ip
     if (!req.body.dir) {
-        currDir = rootDir;
+        currDir = ipDir[reqIp] || rootDir;
     } else {
         currDir = path.join(req.body.dir, req.body.folderName);
     }
@@ -318,6 +321,7 @@ router.post('/loadFile', (req, res) => {
                     fileDetailArray.sort(sortOrder);
                     let result = { "code": "s_ok", "path": currDir, "var": fileDetailArray, sysInfo: sysInfo };
                     res.send(result);
+                    ipDir[reqIp] = currDir
 
                     //排序
                     function sortOrder(a, b) {
