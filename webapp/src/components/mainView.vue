@@ -432,7 +432,8 @@ export default {
         return res.json()
       }).then(data => {
         if (data.code === 's_ok') {
-          this.downloadByIframe(data.url)
+          window.open(data.url, '_self')
+          // this.downloadByIframe(data.url)
         } else {
           alert(data.err)
         }
